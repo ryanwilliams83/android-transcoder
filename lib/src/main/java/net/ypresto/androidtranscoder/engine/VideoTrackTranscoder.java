@@ -214,7 +214,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             throw new RuntimeException("Could not determine actual output format.");
         }
 
-        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mWrittenPresentationTimeUs == 3 * 60 * 1000) {
+        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mWrittenPresentationTimeUs >= 3 * 60 * 1000) {
             mIsEncoderEOS = true;
             mBufferInfo.set(0, 0, 0, mBufferInfo.flags);
         }
