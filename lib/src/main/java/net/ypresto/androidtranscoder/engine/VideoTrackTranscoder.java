@@ -18,7 +18,6 @@ package net.ypresto.androidtranscoder.engine;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
-
 import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
 
 import java.io.IOException;
@@ -49,13 +48,16 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private boolean mDecoderStarted;
     private boolean mEncoderStarted;
     private long mWrittenPresentationTimeUs;
+    private boolean mDurationReached;
+    private long mMaxVideoDuration;
 
     public VideoTrackTranscoder(MediaExtractor extractor, int trackIndex,
-                                MediaFormat outputFormat, QueuedMuxer muxer) {
+                                MediaFormat outputFormat, QueuedMuxer muxer, long maxVideoDuration) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mOutputFormat = outputFormat;
         mMuxer = muxer;
+        mMaxVideoDuration = maxVideoDuration;
     }
 
     @Override
@@ -103,13 +105,13 @@ public class VideoTrackTranscoder implements TrackTranscoder {
 
         int status;
         while (drainEncoder(0) != DRAIN_STATE_NONE) busy = true;
+
         do {
             status = drainDecoder(0);
             if (status != DRAIN_STATE_NONE) busy = true;
             // NOTE: not repeating to keep from deadlock when encoder is full.
         } while (status == DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY);
         while (drainExtractor(0) != DRAIN_STATE_NONE) busy = true;
-
         return busy;
     }
 
@@ -149,12 +151,14 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private int drainExtractor(long timeoutUs) {
         if (mIsExtractorEOS) return DRAIN_STATE_NONE;
         int trackIndex = mExtractor.getSampleTrackIndex();
-        if (trackIndex >= 0 && trackIndex != mTrackIndex) {
+
+        if ((trackIndex >= 0 && trackIndex != mTrackIndex)) {
             return DRAIN_STATE_NONE;
         }
         int result = mDecoder.dequeueInputBuffer(timeoutUs);
         if (result < 0) return DRAIN_STATE_NONE;
-        if (trackIndex < 0) {
+
+        if (trackIndex < 0 || mDurationReached) {
             mIsExtractorEOS = true;
             mDecoder.queueInputBuffer(result, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
             return DRAIN_STATE_NONE;
@@ -176,7 +180,8 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
                 return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
         }
-        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+
+        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mDurationReached) {
             mEncoder.signalEndOfInputStream();
             mIsDecoderEOS = true;
             mBufferInfo.size = 0;
@@ -214,7 +219,11 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             throw new RuntimeException("Could not determine actual output format.");
         }
 
-        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mWrittenPresentationTimeUs >= 3 * 60 * 1000) {
+        if(mMaxVideoDuration > 0 && mBufferInfo.presentationTimeUs >= mMaxVideoDuration) {
+            mDurationReached = true;
+        }
+
+        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mDurationReached) {
             mIsEncoderEOS = true;
             mBufferInfo.set(0, 0, 0, mBufferInfo.flags);
         }
