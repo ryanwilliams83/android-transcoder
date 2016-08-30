@@ -65,7 +65,7 @@ public class MediaTranscoder {
      * @param inFileDescriptor FileDescriptor for input.
      * @param outPath          File path for output.
      * @param listener         Listener instance for callback.
-     * @deprecated Use {@link #transcodeVideo(FileDescriptor, String, MediaFormatStrategy, MediaTranscoder.Listener)} which accepts output video format.
+     * @deprecated Use {@link #transcodeVideo(FileDescriptor, String, MediaFormatStrategy, MediaTranscoder.Listener, long)} which accepts output video format.
      */
     @Deprecated
     public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final Listener listener, long maxVideoDuration) {
