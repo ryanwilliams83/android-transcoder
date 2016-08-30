@@ -225,7 +225,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
 
         if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mDurationReached) {
             mIsEncoderEOS = true;
-            mBufferInfo.set(0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+            mBufferInfo.set(0, 0, 0, mBufferInfo.flags);
         }
         if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
             // SPS or PPS, which should be passed by MediaFormat.
