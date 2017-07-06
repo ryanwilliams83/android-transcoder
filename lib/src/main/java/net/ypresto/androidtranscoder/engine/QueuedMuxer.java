@@ -44,7 +44,7 @@ public class QueuedMuxer {
     public QueuedMuxer(MediaMuxer muxer, Listener listener) {
         mMuxer = muxer;
         mListener = listener;
-        mSampleInfoList = new ArrayList<>();
+        mSampleInfoList = new ArrayList<SampleInfo>();
     }
 
     public void setOutputFormat(SampleType sampleType, MediaFormat format) {

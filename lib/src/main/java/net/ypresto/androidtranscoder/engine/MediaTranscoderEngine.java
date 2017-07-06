@@ -44,6 +44,7 @@ public class MediaTranscoderEngine {
     private volatile double mProgress;
     private ProgressCallback mProgressCallback;
     private long mDurationUs;
+    private long mMaxVideoDuration;
 
     /**
      * Do not use this constructor unless you know what you are doing.
@@ -54,6 +55,8 @@ public class MediaTranscoderEngine {
     public void setDataSource(FileDescriptor fileDescriptor) {
         mInputFileDescriptor = fileDescriptor;
     }
+
+    public void setMaxVideoDuration(long maxVideoDuration) {mMaxVideoDuration = maxVideoDuration;}
 
     public ProgressCallback getProgressCallback() {
         return mProgressCallback;
@@ -143,6 +146,9 @@ public class MediaTranscoderEngine {
 
         try {
             mDurationUs = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)) * 1000;
+            if(mMaxVideoDuration > 0 && mDurationUs > mMaxVideoDuration) {
+                mDurationUs = mMaxVideoDuration;
+            }
         } catch (NumberFormatException e) {
             mDurationUs = -1;
         }
@@ -165,13 +171,13 @@ public class MediaTranscoderEngine {
         });
 
         if (videoOutputFormat == null) {
-            mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
+            mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO, mMaxVideoDuration);
         } else {
-            mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, queuedMuxer);
+            mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, queuedMuxer, mMaxVideoDuration);
         }
         mVideoTrackTranscoder.setup();
         if (audioOutputFormat == null) {
-            mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
+            mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO, mMaxVideoDuration);
         } else {
             mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer);
         }
@@ -187,7 +193,7 @@ public class MediaTranscoderEngine {
             mProgress = progress;
             if (mProgressCallback != null) mProgressCallback.onProgress(progress); // unknown
         }
-        while (!(mVideoTrackTranscoder.isFinished() && mAudioTrackTranscoder.isFinished())) {
+        while (!(mVideoTrackTranscoder.isFinished() || mAudioTrackTranscoder.isFinished())) {
             boolean stepped = mVideoTrackTranscoder.stepPipeline()
                     || mAudioTrackTranscoder.stepPipeline();
             loopCount++;

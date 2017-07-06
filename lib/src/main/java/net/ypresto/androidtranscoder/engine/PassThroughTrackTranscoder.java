@@ -34,13 +34,15 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
     private boolean mIsEOS;
     private MediaFormat mActualOutputFormat;
     private long mWrittenPresentationTimeUs;
+    private long mMaxVideoDuration;
 
     public PassThroughTrackTranscoder(MediaExtractor extractor, int trackIndex,
-                                      QueuedMuxer muxer, QueuedMuxer.SampleType sampleType) {
+                                      QueuedMuxer muxer, QueuedMuxer.SampleType sampleType, long maxVideoDuration) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mMuxer = muxer;
         mSampleType = sampleType;
+        mMaxVideoDuration = maxVideoDuration;
 
         mActualOutputFormat = mExtractor.getTrackFormat(mTrackIndex);
         mMuxer.setOutputFormat(mSampleType, mActualOutputFormat);
@@ -62,7 +64,7 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
     public boolean stepPipeline() {
         if (mIsEOS) return false;
         int trackIndex = mExtractor.getSampleTrackIndex();
-        if (trackIndex < 0) {
+        if (trackIndex < 0 || (mMaxVideoDuration > 0 && mWrittenPresentationTimeUs >= mMaxVideoDuration)) {
             mBuffer.clear();
             mBufferInfo.set(0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
             mMuxer.writeSampleData(mSampleType, mBuffer, mBufferInfo);

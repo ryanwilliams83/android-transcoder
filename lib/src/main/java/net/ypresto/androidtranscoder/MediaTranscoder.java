@@ -71,10 +71,10 @@ public class MediaTranscoder {
      * @param inFileDescriptor FileDescriptor for input.
      * @param outPath          File path for output.
      * @param listener         Listener instance for callback.
-     * @deprecated Use {@link #transcodeVideo(FileDescriptor, String, MediaFormatStrategy, MediaTranscoder.Listener)} which accepts output video format.
+     * @deprecated Use {@link #transcodeVideo(FileDescriptor, String, MediaFormatStrategy, MediaTranscoder.Listener, long)} which accepts output video format.
      */
     @Deprecated
-    public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final Listener listener) {
+    public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final Listener listener, long maxVideoDuration) {
         return transcodeVideo(inFileDescriptor, outPath, new MediaFormatStrategy() {
             @Override
             public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {
@@ -85,7 +85,7 @@ public class MediaTranscoder {
             public MediaFormat createAudioOutputFormat(MediaFormat inputFormat) {
                 return null;
             }
-        }, listener);
+        }, listener, maxVideoDuration);
     }
 
     /**
@@ -98,7 +98,7 @@ public class MediaTranscoder {
      * @param listener          Listener instance for callback.
      * @throws IOException if input file could not be read.
      */
-    public Future<Void> transcodeVideo(final String inPath, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener) throws IOException {
+    public Future<Void> transcodeVideo(final String inPath, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener, long maxVideoDuration) throws IOException {
         FileInputStream fileInputStream = null;
         FileDescriptor inFileDescriptor;
         try {
@@ -146,7 +146,7 @@ public class MediaTranscoder {
                     Log.e(TAG, "Can't close input stream: ", e);
                 }
             }
-        });
+        }, maxVideoDuration);
     }
 
     /**
@@ -158,11 +158,11 @@ public class MediaTranscoder {
      * @param outFormatStrategy Strategy for output video format.
      * @param listener          Listener instance for callback.
      */
-    public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener) {
+    public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener, final long maxVideoDuration) {
         Looper looper = Looper.myLooper();
         if (looper == null) looper = Looper.getMainLooper();
         final Handler handler = new Handler(looper);
-        final AtomicReference<Future<Void>> futureReference = new AtomicReference<>();
+        final AtomicReference<Future<Void>> futureReference = new AtomicReference<Future<Void>>();
         final Future<Void> createdFuture = mExecutor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -181,6 +181,7 @@ public class MediaTranscoder {
                         }
                     });
                     engine.setDataSource(inFileDescriptor);
+                    engine.setMaxVideoDuration(maxVideoDuration);
                     engine.transcodeVideo(outPath, outFormatStrategy);
                 } catch (IOException e) {
                     Log.w(TAG, "Transcode failed: input file (fd: " + inFileDescriptor.toString() + ") not found"
