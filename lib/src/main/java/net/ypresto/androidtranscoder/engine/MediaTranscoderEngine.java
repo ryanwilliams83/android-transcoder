@@ -205,7 +205,7 @@ public class MediaTranscoderEngine {
             mProgress = progress;
             if (mProgressCallback != null) mProgressCallback.onProgress(progress); // unknown
         }
-        while (!(mVideoTrackTranscoder.isFinished() || mAudioTrackTranscoder.isFinished())) {
+        while (!mVideoTrackTranscoder.isFinished() && !mAudioTrackTranscoder.isFinished()) {
             boolean stepped = mVideoTrackTranscoder.stepPipeline()
                     || mAudioTrackTranscoder.stepPipeline();
             loopCount++;

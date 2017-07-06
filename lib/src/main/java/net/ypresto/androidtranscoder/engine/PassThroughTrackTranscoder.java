@@ -71,7 +71,7 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
     public boolean stepPipeline() {
         if (mIsEOS) return false;
         int trackIndex = mExtractor.getSampleTrackIndex();
-        if (trackIndex < 0 || (mMaxVideoDuration > 0 && mWrittenPresentationTimeUs >= mMaxVideoDuration)) {
+        if (trackIndex < 0 || (mMaxVideoDuration > 0 && mWrittenPresentationTimeUs > mMaxVideoDuration)) {
             mBuffer.clear();
             mBufferInfo.set(0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
             mMuxer.writeSampleData(mSampleType, mBuffer, mBufferInfo);

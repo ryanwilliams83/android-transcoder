@@ -216,7 +216,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         if (mActualOutputFormat == null) {
             throw new RuntimeException("Could not determine actual output format.");
         }
-        if(mMaxVideoDuration > 0 && mBufferInfo.presentationTimeUs >= mMaxVideoDuration) {
+        if(mMaxVideoDuration > 0 && mBufferInfo.presentationTimeUs > mMaxVideoDuration) {
             mDurationReached = true;
         }
         if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mDurationReached) {
