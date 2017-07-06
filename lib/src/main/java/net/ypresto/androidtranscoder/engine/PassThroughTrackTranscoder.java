@@ -44,6 +44,13 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
         mSampleType = sampleType;
         mMaxVideoDuration = maxVideoDuration;
 
+        if (trackIndex < 0) {
+            // Exclude the track.
+            mMuxer.setOutputFormat(mSampleType, null);
+            mIsEOS = true;
+            mWrittenPresentationTimeUs = 0;
+            return;
+        }
         mActualOutputFormat = mExtractor.getTrackFormat(mTrackIndex);
         mMuxer.setOutputFormat(mSampleType, mActualOutputFormat);
         mBufferSize = mActualOutputFormat.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE);

@@ -165,8 +165,16 @@ public class MediaTranscoderEngine {
         QueuedMuxer queuedMuxer = new QueuedMuxer(mMuxer, new QueuedMuxer.Listener() {
             @Override
             public void onDetermineOutputFormat() {
-                MediaFormatValidator.validateVideoOutputFormat(mVideoTrackTranscoder.getDeterminedFormat());
-                MediaFormatValidator.validateAudioOutputFormat(mAudioTrackTranscoder.getDeterminedFormat());
+                // If there is a video track, validate the format.
+                MediaFormat videoFormat = mVideoTrackTranscoder.getDeterminedFormat();
+                if (videoFormat != null) {
+                    MediaFormatValidator.validateVideoOutputFormat(videoFormat);
+                }
+                // If there is an audio track, validate the format.
+                MediaFormat audioFormat = mAudioTrackTranscoder.getDeterminedFormat();
+                if (audioFormat != null) {
+                    MediaFormatValidator.validateAudioOutputFormat(audioFormat);
+                }
             }
         });
 
@@ -182,8 +190,12 @@ public class MediaTranscoderEngine {
             mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer);
         }
         mAudioTrackTranscoder.setup();
-        mExtractor.selectTrack(trackResult.mVideoTrackIndex);
-        mExtractor.selectTrack(trackResult.mAudioTrackIndex);
+        if (trackResult.mVideoTrackIndex >= 0) {
+            mExtractor.selectTrack(trackResult.mVideoTrackIndex);
+        }
+        if (trackResult.mAudioTrackIndex >= 0) {
+            mExtractor.selectTrack(trackResult.mAudioTrackIndex);
+        }
     }
 
     private void runPipelines() {
