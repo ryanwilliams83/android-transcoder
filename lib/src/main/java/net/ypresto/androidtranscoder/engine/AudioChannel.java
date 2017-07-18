@@ -31,8 +31,8 @@ class AudioChannel {
     private static final int BYTES_PER_SHORT = 2;
     private static final long MICROSECS_PER_SEC = 1000000;
 
-    private final Queue<AudioBuffer> mEmptyBuffers = new ArrayDeque<>();
-    private final Queue<AudioBuffer> mFilledBuffers = new ArrayDeque<>();
+    private final Queue<AudioBuffer> mEmptyBuffers = new ArrayDeque<AudioBuffer>();
+    private final Queue<AudioBuffer> mFilledBuffers = new ArrayDeque<AudioBuffer>();
 
     private final MediaCodec mDecoder;
     private final MediaCodec mEncoder;
