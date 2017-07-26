@@ -42,15 +42,7 @@ public class MediaTranscoder {
     private ThreadPoolExecutor mExecutor;
 
     private MediaTranscoder() {
-        mExecutor = new ThreadPoolExecutor(
-                0, MAXIMUM_THREAD, 60, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<Runnable>(),
-                new ThreadFactory() {
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "MediaTranscoder-Worker");
-                    }
-                });
+        mExecutor = null;
     }
 
     public static MediaTranscoder getInstance() {
@@ -62,6 +54,11 @@ public class MediaTranscoder {
             }
         }
         return sMediaTranscoder;
+    }
+
+    public void abort() {
+        if (mExecutor != null)
+            mExecutor.shutdownNow();
     }
 
     /**
@@ -159,6 +156,17 @@ public class MediaTranscoder {
      * @param listener          Listener instance for callback.
      */
     public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener, final long maxVideoDuration) {
+        if (mExecutor == null || mExecutor.isShutdown())
+            mExecutor = new ThreadPoolExecutor(
+                0, MAXIMUM_THREAD, 60, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<Runnable>(),
+                new ThreadFactory() {
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        return new Thread(r, "MediaTranscoder-Worker");
+                    }
+                });
+
         Looper looper = Looper.myLooper();
         if (looper == null) looper = Looper.getMainLooper();
         final Handler handler = new Handler(looper);
