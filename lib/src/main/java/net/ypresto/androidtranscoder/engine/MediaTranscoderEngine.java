@@ -187,7 +187,7 @@ public class MediaTranscoderEngine {
         if (audioOutputFormat == null) {
             mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO, mMaxVideoDuration);
         } else {
-            mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer);
+            mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer, mMaxVideoDuration);
         }
         mAudioTrackTranscoder.setup();
         if (trackResult.mVideoTrackIndex >= 0) {
@@ -204,9 +204,9 @@ public class MediaTranscoderEngine {
             double progress = PROGRESS_UNKNOWN;
             mProgress = progress;
             if (mProgressCallback != null) mProgressCallback.onProgress(progress); // unknown
-        }        
-        // Update progress until either transcoders are finished. Required for trimming.
-        while (!(mVideoTrackTranscoder.isFinished() || mAudioTrackTranscoder.isFinished())) {
+        }
+        // Update progress until both transcoders are finished.
+        while (mVideoTrackTranscoder.isFinished() && mAudioTrackTranscoder.isFinished()) {
             boolean stepped = mVideoTrackTranscoder.stepPipeline()
                     || mAudioTrackTranscoder.stepPipeline();
             loopCount++;

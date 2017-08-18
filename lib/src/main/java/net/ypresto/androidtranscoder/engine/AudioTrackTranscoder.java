@@ -37,17 +37,20 @@ public class AudioTrackTranscoder implements TrackTranscoder {
     private boolean mIsEncoderEOS;
     private boolean mDecoderStarted;
     private boolean mEncoderStarted;
+    private boolean mDurationReached;
+    private long mMaxVideoDuration;
 
     private AudioChannel mAudioChannel;
 
     public AudioTrackTranscoder(MediaExtractor extractor, int trackIndex,
-                                MediaFormat outputFormat, QueuedMuxer muxer) {
+                                MediaFormat outputFormat, QueuedMuxer muxer, long maxVideoDuration) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mOutputFormat = outputFormat;
         mMuxer = muxer;
 
         mInputFormat = mExtractor.getTrackFormat(mTrackIndex);
+        mMaxVideoDuration = maxVideoDuration;
     }
 
     @Override
@@ -109,7 +112,7 @@ public class AudioTrackTranscoder implements TrackTranscoder {
 
         final int result = mDecoder.dequeueInputBuffer(timeoutUs);
         if (result < 0) return DRAIN_STATE_NONE;
-        if (trackIndex < 0) {
+        if (trackIndex < 0 || mDurationReached) {
             mIsExtractorEOS = true;
             mDecoder.queueInputBuffer(result, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
             return DRAIN_STATE_NONE;
@@ -135,7 +138,7 @@ public class AudioTrackTranscoder implements TrackTranscoder {
                 return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
         }
 
-        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mDurationReached) {
             mIsDecoderEOS = true;
             mAudioChannel.drainDecoderBufferAndQueue(AudioChannel.BUFFER_INDEX_END_OF_STREAM, 0);
         } else if (mBufferInfo.size > 0) {
@@ -168,7 +171,11 @@ public class AudioTrackTranscoder implements TrackTranscoder {
             throw new RuntimeException("Could not determine actual output format.");
         }
 
-        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+        if(mMaxVideoDuration > 0 && mBufferInfo.presentationTimeUs >= mMaxVideoDuration) {
+            mDurationReached = true;
+        }
+
+        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mDurationReached) {
             mIsEncoderEOS = true;
             mBufferInfo.set(0, 0, 0, mBufferInfo.flags);
         }
